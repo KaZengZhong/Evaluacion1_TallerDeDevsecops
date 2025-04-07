@@ -8,7 +8,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name = "savings")
 @Data
@@ -36,8 +35,6 @@ public class SavingsEntity {
     private Integer significantWithdrawalsCount;
     private BigDecimal lastSixMonthsAverageBalance;
     private Boolean meetsSavingsCriteria;
-
-
 
 }
 

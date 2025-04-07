@@ -19,18 +19,84 @@ import {
     TextField
 } from '@mui/material';
 import ApplicationService from '../services/application.service';
-import UserService from '../services/user.service';
-import { useNavigate } from 'react-router-dom'; // Importar useNavigate
+import { useNavigate } from 'react-router-dom'; 
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
+
 
 function ApplicationManagement() {
-    const navigate = useNavigate(); // Inicializar useNavigate
+    const navigate = useNavigate(); 
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(null); // Nuevo estado para mensajes de éxito
+    const [successMessage, setSuccessMessage] = useState(null); 
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
-    
+    const [previewDialog, setPreviewDialog] = useState(false);
+    const [previewFile, setPreviewFile] = useState(null);
+
+    const handlePreviewFile = (fileData) => {
+        setPreviewFile(fileData);
+        setPreviewDialog(true);
+    };
+
+    const FilePreviewDialog = ({ file, open, onClose }) => {
+        if (!file) return null;
+        return (
+            <Dialog 
+                open={open} 
+                onClose={onClose}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>
+                    {file.name}
+                    <IconButton
+                        onClick={onClose}
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    {file.type.includes('image') ? (
+                        <>
+                            <Typography variant="caption" display="block" gutterBottom>
+                                Tipo de archivo: {file.type}
+                            </Typography>
+                            <img 
+                                src={file.content}
+                                alt={file.name}
+                                style={{ maxWidth: '100%', height: 'auto' }}
+                            />
+                        </>
+                    ) : file.type === 'application/pdf' ? (
+                        <>
+                            <Typography variant="caption" display="block" gutterBottom>
+                                PDF Preview
+                            </Typography>
+                            <object
+                                data={file.content}
+                                type="application/pdf"
+                                width="100%"
+                                height="500px"
+                            >
+                                <Typography>No se puede mostrar el PDF</Typography>
+                            </object>
+                        </>
+                    ) : (
+                        <Typography>
+                            Tipo de archivo no soportado: {file.type}
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose}>Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
     const applicationStatuses = [
         { value: 'IN_REVIEW', label: 'En Revisión Inicial' },
         { value: 'PENDING_DOCUMENTS', label: 'Pendiente de Documentación' },
@@ -62,7 +128,7 @@ function ApplicationManagement() {
     const handleStatusChange = async (applicationId, newStatus) => {
         try {
             await ApplicationService.updateStatus(applicationId, newStatus);
-            await fetchApplications(); // Recargar lista
+            await fetchApplications(); 
             setOpenDialog(false);
         } catch (err) {
             setError('Error al actualizar el estado');
@@ -71,8 +137,7 @@ function ApplicationManagement() {
     };
 
     const handleEvaluateCredit = (applicationId) => {
-        // Navegar a la pestaña de /credit
-        navigate(`/credit/${applicationId}`); // Aquí puedes pasar el ID si necesitas hacerlo en la nueva ruta
+        navigate(`/credit/${applicationId}`);
     };
 
     const getStatusInfo = (status) => {
@@ -109,8 +174,16 @@ function ApplicationManagement() {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pt: 10, pb: 4 }}>
-            <Container maxWidth="lg" sx={{ ml: { xs: 4, sm: 8, md: 30 }, mr: 'auto' }}>
+        <Box sx={{ 
+            position: 'absolute',
+            width: '100%',
+            left: 0,
+            minHeight: '100vh', 
+            bgcolor: 'background.default', 
+            pt: 10,
+            pb: 4 
+        }}>
+            <Container maxWidth="lg">
                 {error && (
                     <Alert severity="error" sx={{ mb: 3 }}>
                         {error}
@@ -150,9 +223,9 @@ function ApplicationManagement() {
                                     </Button>
                                     <Button
                                         variant="contained"
-                                        color="secondary" // Cambiar color si es necesario
-                                        sx={{ ml: 2 }} // Margen izquierdo para separar botones
-                                        onClick={() => handleEvaluateCredit(application.id)} // Navega a la pestaña de crédito
+                                        color="secondary" 
+                                        sx={{ ml: 2 }} 
+                                        onClick={() => handleEvaluateCredit(application.id)} 
                                     >
                                         Evaluar Crédito
                                     </Button>
@@ -235,6 +308,53 @@ function ApplicationManagement() {
                                     </Paper>
                                 </Grid>
                             </Grid>
+
+
+                            {application.documents && (
+                                <Grid container spacing={3} sx={{ mt: 1 }}>
+                                    <Grid item xs={12}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Documentos Adjuntos
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            {Object.entries(JSON.parse(application.documents || '{}')).map(([key, doc]) => (
+                                                <Grid item xs={12} md={4} key={key}>
+                                                    <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <Box>
+                                                                <Typography color="text.secondary" gutterBottom>
+                                                                    {key === 'incomeProof' ? 'Comprobante de Ingresos' :
+                                                                    key === 'propertyAppraisal' ? 'Certificado de Avalúo' :
+                                                                    key === 'creditHistory' ? 'Historial Crediticio' :
+                                                                    key === 'firstPropertyDeed' ? 'Escritura Primera Vivienda' :
+                                                                    key === 'businessFinancials' ? 'Estado Financiero' :
+                                                                    key === 'businessPlan' ? 'Plan de Negocios' :
+                                                                    key === 'renovationBudget' ? 'Presupuesto Remodelación' :
+                                                                    key === 'updatedAppraisal' ? 'Avalúo Actualizado' :
+                                                                    key}
+                                                                </Typography>
+                                                                <Typography variant="body2">
+                                                                    {doc.name}
+                                                                </Typography>
+                                                            </Box>
+                                                            {doc.content && (
+                                                                <Button 
+                                                                    variant="outlined" 
+                                                                    size="small"
+                                                                    onClick={() => handlePreviewFile(doc)}
+                                                                >
+                                                                    Ver documento
+                                                                </Button>
+                                                            )}
+                                                        </Box>
+                                                    </Paper>
+                                                </Grid>
+                                            ))}
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            )}                
+
                         </CardContent>
                     </Card>
                 ))}
@@ -264,6 +384,14 @@ function ApplicationManagement() {
                     </DialogActions>
                 </Dialog>
             </Container>
+            <FilePreviewDialog
+                file={previewFile}
+                open={previewDialog}
+                onClose={() => {
+                    setPreviewDialog(false);
+                    setPreviewFile(null);
+                }}
+            />
         </Box>
     );
 }
